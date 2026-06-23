@@ -8,6 +8,8 @@ from scipy.stats import poisson
 
 from config import (
     ANIOS_HISTORIAL,
+    ELO_K,
+    ELO_PESO,
     HALF_LIFE_ANIOS,
     MAX_G,
     RAW_URL,
@@ -134,6 +136,59 @@ def analizar_goles(matriz, max_goles=MAX_G):
     }
 
 
+def calcular_elo(df_jugados):
+    """Calcula ELO iterativo para todos los equipos usando el historial completo."""
+    elo = {}
+    for _, p in df_jugados.sort_values("date").iterrows():
+        local = p["home_team"]
+        visit = p["away_team"]
+        k = ELO_K * peso_torneo(p["tournament"])
+
+        e_l = elo.get(local, 1000.0)
+        e_v = elo.get(visit, 1000.0)
+        p_l = 1.0 / (1.0 + 10.0 ** ((e_v - e_l) / 400.0))
+
+        gd = abs(p["home_score"] - p["away_score"])
+        mult = 1.0 if gd <= 1 else (1.5 if gd == 2 else (1.75 + max(0, gd - 3) / 8.0))
+
+        if p["home_score"] > p["away_score"]:
+            s_l = 1.0
+        elif p["home_score"] == p["away_score"]:
+            s_l = 0.5
+        else:
+            s_l = 0.0
+
+        delta = k * mult * (s_l - p_l)
+        elo[local] = e_l + delta
+        elo[visit] = e_v - delta
+
+    return elo
+
+
+def mezclar_elo(elo, local, visitante, p_local_dc, p_draw_dc, p_visit_dc):
+    """Mezcla probabilidades Dixon-Coles con probabilidad ELO.
+
+    Usa el score esperado ELO para descomponer win/loss, manteniendo
+    el empate del modelo DC como ancla estructural.
+    """
+    if not elo or local not in elo or visitante not in elo:
+        return p_local_dc, p_draw_dc, p_visit_dc
+
+    e_local = 1.0 / (1.0 + 10.0 ** ((elo[visitante] - elo[local]) / 400.0))
+
+    # Descomponer score ELO en win/draw/loss usando DC draw como ancla
+    p_win_elo = max(0.0, e_local - 0.5 * p_draw_dc)
+    p_loss_elo = max(0.0, (1.0 - e_local) - 0.5 * p_draw_dc)
+    p_draw_elo = 1.0 - p_win_elo - p_loss_elo
+
+    p_l = (1 - ELO_PESO) * p_local_dc + ELO_PESO * p_win_elo
+    p_d = (1 - ELO_PESO) * p_draw_dc + ELO_PESO * p_draw_elo
+    p_v = (1 - ELO_PESO) * p_visit_dc + ELO_PESO * p_loss_elo
+
+    total = p_l + p_d + p_v
+    return p_l / total, p_d / total, p_v / total
+
+
 def cargar_y_entrenar():
     """Descarga datos historicos, entrena el modelo y predice partidos pendientes."""
     url = f"{RAW_URL}?t={int(datetime.now().timestamp())}"
@@ -198,11 +253,13 @@ def cargar_y_entrenar():
     ) / liga_avg
 
     fuerza = resumen.set_index("team")[["attack", "defense"]].to_dict("index")
+    elo = calcular_elo(jugados)
     modelo = {
         "fuerza": fuerza,
         "liga_avg": liga_avg,
         "liga_home": liga_home,
         "liga_away": liga_away,
+        "elo": elo,
     }
 
     pendientes = df[df["home_score"].isna()].copy()
@@ -222,6 +279,9 @@ def cargar_y_entrenar():
             bool(partido["neutral"]),
         )
         prob_local, prob_empate, prob_visitante = prob_1x2_de_matriz(matriz)
+        prob_local, prob_empate, prob_visitante = mezclar_elo(
+            elo, local, visitante, prob_local, prob_empate, prob_visitante
+        )
         goles = analizar_goles(matriz)
 
         predicciones.append(

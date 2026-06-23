@@ -9,6 +9,7 @@ from models.predictor import (
     analizar_goles,
     cargar_y_entrenar,
     matriz_marcadores,
+    mezclar_elo,
     prob_1x2_de_matriz,
 )
 from views.components import metric_card, top5_marcadores
@@ -51,7 +52,7 @@ def registrar_callbacks(app):
             torneos,
             equipos,
             equipos,
-            f"Actualizado {fecha}  -  {cantidad} partidos sin jugar",
+            f"Actualizado {fecha} - {cantidad} partidos pendientes",
         )
 
     @app.callback(
@@ -86,16 +87,12 @@ def registrar_callbacks(app):
     )
     def explorar(modelo, local, visitante):
         vacio = fig_vacia("Elige dos selecciones")
-        placeholder = html.Div("-", style={"color": COLORS["txt2"], "padding": "20px 0"})
+        placeholder = html.Div("Selecciona equipos para calcular marcadores.", className="empty-state")
 
         if not modelo or not local or not visitante or local == visitante:
             mensaje = html.Div(
                 "Elige local y visitante para ver el analisis.",
-                style={
-                    "color": COLORS["txt2"],
-                    "padding": "10px 0 18px",
-                    "fontSize": "14px",
-                },
+                className="empty-state",
             )
             return mensaje, placeholder, vacio, vacio
 
@@ -106,6 +103,9 @@ def registrar_callbacks(app):
             neutral=True,
         )
         prob_local, prob_empate, prob_visitante = prob_1x2_de_matriz(matriz)
+        prob_local, prob_empate, prob_visitante = mezclar_elo(
+            modelo.get("elo", {}), local, visitante, prob_local, prob_empate, prob_visitante
+        )
         goles = analizar_goles(matriz)
 
         metricas = html.Div(

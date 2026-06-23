@@ -8,7 +8,14 @@ def fig_vacia(mensaje):
     return go.Figure().update_layout(
         **PLOTLY_BASE,
         height=300,
-        annotations=[{"text": mensaje, "showarrow": False}],
+        annotations=[
+            {
+                "text": mensaje,
+                "showarrow": False,
+                "font": {"color": COLORS["txt2"], "size": 13},
+            }
+        ],
+        margin={"l": 20, "r": 20, "t": 20, "b": 20},
     )
 
 
@@ -33,9 +40,10 @@ def fig_pendientes(df):
             orientation="h",
             marker_color=color,
             text=[f"{valor:.0%}" for valor in df[columna]],
-            textposition="inside",
+            textposition="auto",
             insidetextanchor="middle",
             textfont={"color": "#ffffff", "size": 12},
+            hovertemplate="%{y}<br>" + nombre + ": %{x:.1f}%<extra></extra>",
         )
 
     fig.update_layout(
@@ -46,11 +54,12 @@ def fig_pendientes(df):
             "range": [0, 100],
             "gridcolor": COLORS["border"],
         },
-        yaxis={"gridcolor": "rgba(0,0,0,0)"},
+        yaxis={"gridcolor": "rgba(0,0,0,0)", "automargin": True},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "x": 0},
         margin={"l": 10, "r": 10, "t": 40, "b": 40},
         height=max(320, 56 * len(df)),
         bargap=0.35,
+        uniformtext={"mode": "hide", "minsize": 10},
     )
     return fig
 
@@ -63,19 +72,33 @@ def fig_heatmap(matriz, local, visitante, vista=6):
             z=submatriz,
             x=list(range(vista + 1)),
             y=list(range(vista + 1)),
-            colorscale="Viridis",
+            colorscale=[
+                [0.0, "#f8fafc"],
+                [0.35, "#c7d2fe"],
+                [0.7, "#60a5fa"],
+                [1.0, "#047857"],
+            ],
             showscale=True,
-            colorbar={"title": "%"},
+            colorbar={"title": "%", "thickness": 12},
             text=[[f"{valor:.1f}" for valor in fila] for fila in submatriz],
             texttemplate="%{text}",
-            textfont={"size": 10},
+            textfont={"size": 10, "color": COLORS["txt"]},
+            hovertemplate=(
+                f"{local} %{{y}} - {visitante} %{{x}}"
+                "<br>Probabilidad: %{z:.2f}%<extra></extra>"
+            ),
         )
     )
     fig.update_layout(
         **PLOTLY_BASE,
         height=380,
-        xaxis={"title": f"Goles {visitante}", "dtick": 1},
-        yaxis={"title": f"Goles {local}", "dtick": 1, "autorange": "reversed"},
+        xaxis={"title": f"Goles {visitante}", "dtick": 1, "gridcolor": COLORS["border"]},
+        yaxis={
+            "title": f"Goles {local}",
+            "dtick": 1,
+            "autorange": "reversed",
+            "gridcolor": COLORS["border"],
+        },
         margin={"l": 10, "r": 10, "t": 30, "b": 40},
     )
     return fig
@@ -84,7 +107,7 @@ def fig_heatmap(matriz, local, visitante, vista=6):
 def fig_total(distribucion, vista=8):
     datos = distribucion[: vista + 1] * 100
     pico = int(np.argmax(datos))
-    colores = [COLORS["accent"] if indice == pico else COLORS["card2"] for indice in range(len(datos))]
+    colores = [COLORS["accent"] if indice == pico else "#dbe4ee" for indice in range(len(datos))]
 
     fig = go.Figure(
         go.Bar(
@@ -94,6 +117,7 @@ def fig_total(distribucion, vista=8):
             text=[f"{valor:.0f}%" for valor in datos],
             textposition="outside",
             textfont={"color": COLORS["txt2"], "size": 11},
+            hovertemplate="Total %{x} goles<br>Probabilidad: %{y:.2f}%<extra></extra>",
         )
     )
     fig.update_layout(
@@ -102,5 +126,6 @@ def fig_total(distribucion, vista=8):
         xaxis={"title": "Total de goles en el partido", "dtick": 1},
         yaxis={"title": "Probabilidad (%)", "gridcolor": COLORS["border"], "gridwidth": 1},
         margin={"l": 10, "r": 10, "t": 30, "b": 40},
+        uniformtext={"mode": "hide", "minsize": 10},
     )
     return fig

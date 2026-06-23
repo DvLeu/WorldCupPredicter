@@ -4,6 +4,8 @@
 
 WorldCupPredicter is a visual tool for exploring probabilities in international football matches, with a focus on the road to the 2026 FIFA World Cup.
 
+You can view the live application here: https://world-cup-predicter.vercel.app/
+
 This project was created for learning purposes. Its main goal is to practice web development with Python, data visualization, and statistical modeling using real football data.
 
 The application helps answer simple questions:
@@ -108,6 +110,8 @@ For that reason, the predictions are only informative. They do not guarantee rea
 # Español
 
 WorldCupPredicter es una herramienta visual para explorar probabilidades de partidos internacionales de fútbol, con enfoque en el camino hacia el Mundial 2026.
+
+Puedes ver la aplicación en vivo aquí: https://world-cup-predicter.vercel.app/
 
 Este proyecto fue creado con fines de aprendizaje. Su objetivo principal es practicar desarrollo web con Python, visualización de datos y modelos estadísticos aplicados a información real de fútbol.
 

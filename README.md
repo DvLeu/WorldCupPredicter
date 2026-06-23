@@ -141,6 +141,36 @@ Despues abrir en el navegador:
 http://127.0.0.1:8050
 ```
 
+## Despliegue en Vercel
+
+El proyecto incluye estos archivos para poder desplegarlo en Vercel:
+
+- `requirements.txt`: lista las librerias que Vercel debe instalar.
+- `vercel.json`: indica que la app se ejecuta con Python.
+- `api/index.py`: punto de entrada que conecta Vercel con la app Dash.
+
+Pasos:
+
+1. Subir el proyecto a GitHub.
+2. En Vercel, elegir `New Project`.
+3. Importar el repositorio.
+4. En `Application Preset`, seleccionar `Other`.
+5. Dejar `Root Directory` como `./`.
+6. No es necesario agregar comandos de build.
+7. Presionar `Deploy`.
+
+Si Vercel pide configuracion manual:
+
+```text
+Framework Preset: Other
+Root Directory: ./
+Build Command: vacio
+Output Directory: vacio
+Install Command: pip install -r requirements.txt
+```
+
+Nota: Dash funciona mejor en servidores Python tradicionales como Render, Railway o PythonAnywhere. Vercel puede servir para una prueba sencilla, pero si la app crece o tarda mucho entrenando el modelo, conviene moverla a una plataforma pensada para apps Python persistentes.
+
 ## Uso
 
 1. Abrir la aplicacion.
